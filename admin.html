@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Temple Run</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .btn {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            float: right;
+            margin-bottom: 20px;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        tr:hover {
+            background-color: #f1f2f6;
+        }
+
+        .back-btn {
+            background-color: #e74c3c;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .brand-logo {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            height: 80px;
+            /* Adjust based on actual image size */
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+    <img src="logo.png" alt="WeLe Logo" class="brand-logo">
+    <div class="container">
+        <a href="/" class="back-btn">⬅ Back to Game</a>
+        <button class="btn" onclick="downloadCSV()">⬇ Download CSV</button>
+        <h1>🏆 Admin Dashboard - Users & Results</h1>
+
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Mobile</th>
+                    <th>Email</th>
+                    <th>Score</th>
+                    <th>Category</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td colspan="6" style="text-align:center;">Loading data...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let adminData = [];
+
+        async function loadData() {
+            try {
+                const res = await fetch('/api/admin/data');
+                const result = await res.json();
+
+                if (result.success) {
+                    adminData = result.data;
+                    const tbody = document.getElementById('tableBody');
+                    tbody.innerHTML = '';
+
+                    if (adminData.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No data found.</td></tr>';
+                        return;
+                    }
+
+                    adminData.forEach(row => {
+                        const tr = document.createElement('tr');
+                        const dateObj = row.date !== 'N/A' ? new Date(row.date).toLocaleString() : 'N/A';
+
+                        tr.innerHTML = `
+                            <td>${row.username || 'N/A'}</td>
+                            <td>${row.mobile || 'N/A'}</td>
+                            <td>${row.email || 'N/A'}</td>
+                            <td style="font-weight:bold;">${row.score}</td>
+                            <td>${row.category}</td>
+                            <td>${dateObj}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    alert('Failed to load data.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error connecting to backend.');
+            }
+        }
+
+        function downloadCSV() {
+            if (adminData.length === 0) {
+                alert("No data to download!");
+                return;
+            }
+
+            let csv = "Username,Mobile,Email,Score,Category,Date\n";
+            adminData.forEach(row => {
+                const dateObj = row.date !== 'N/A' ? new Date(row.date).toLocaleString() : 'N/A';
+
+                // Escape commas by quoting fields
+                const rowStr = [
+                    `"${row.username}"`,
+                    `"${row.mobile}"`,
+                    `"${row.email}"`,
+                    `"${row.score}"`,
+                    `"${row.category}"`,
+                    `"${dateObj}"`
+                ].join(',');
+
+                csv += rowStr + "\n";
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'temple_run_results.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+
+</html>
